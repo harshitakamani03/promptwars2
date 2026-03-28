@@ -315,9 +315,9 @@ Be empathetic and use simple, non-technical language.`;
     <div className="app-container">
       {/* Image Modal */}
       {selectedImage && (
-        <div className="modal-overlay" onClick={() => setSelectedImage(null)}>
+        <div className="modal-overlay" role="dialog" aria-modal="true" aria-label="View medical document" onClick={() => setSelectedImage(null)}>
           <div className="modal-content glass-card" onClick={e => e.stopPropagation()}>
-            <button className="close-btn" onClick={() => setSelectedImage(null)}><X /></button>
+            <button className="close-btn" aria-label="Close image viewer" onClick={() => setSelectedImage(null)}><X /></button>
             <img src={selectedImage} alt="Record" className="full-image" />
           </div>
         </div>
@@ -325,11 +325,11 @@ Be empathetic and use simple, non-technical language.`;
 
       {/* Prescription Modal */}
       {isAddingPrescription && (
-        <div className="modal-overlay">
+        <div className="modal-overlay" role="dialog" aria-modal="true" aria-label="Add new prescription">
           <form className="modal-content glass-card prescription-form" onSubmit={handleManualPrescription}>
-            <div className="modal-header"><h3><Pill /> New Digital Prescription</h3><button type="button" onClick={() => setIsAddingPrescription(false)}><X/></button></div>
-            <input name="title" placeholder="Consultation Title (e.g. Back Pain)" className="aadhar-input" required />
-            <textarea name="content" placeholder="Write prescription notes... Gemini will summarize them." className="aadhar-input" rows={6} required />
+            <div className="modal-header"><h3><Pill /> New Digital Prescription</h3><button type="button" aria-label="Close prescription form" onClick={() => setIsAddingPrescription(false)}><X/></button></div>
+            <input name="title" placeholder="Consultation Title (e.g. Back Pain)" className="aadhar-input" aria-label="Consultation title" required />
+            <textarea name="content" placeholder="Write prescription notes... Gemini will summarize them." className="aadhar-input" aria-label="Prescription notes" rows={6} required />
             <button type="submit" className="action-btn" disabled={isProcessingRecord}>
               {isProcessingRecord ? <><Loader2 className="spinner" size={18}/> Summarizing...</> : <><Send size={18}/> Generate & Save</>}
             </button>
@@ -339,7 +339,7 @@ Be empathetic and use simple, non-technical language.`;
 
       {/* New Case Modal */}
       {isNewCaseModal && (
-        <div className="modal-overlay" onClick={() => setIsNewCaseModal(false)}>
+        <div className="modal-overlay" role="dialog" aria-modal="true" aria-label="Create new legal case" onClick={() => setIsNewCaseModal(false)}>
           <div className="modal-content glass-card prescription-form" onClick={e => e.stopPropagation()}>
             <div className="modal-header"><h3><Gavel size={20}/> New Legal Case</h3><button type="button" onClick={() => setIsNewCaseModal(false)}><X/></button></div>
             <p className="subtitle" style={{marginBottom:'1rem'}}>Give your case a short descriptive title</p>
@@ -356,20 +356,20 @@ Be empathetic and use simple, non-technical language.`;
         </div>
       )}
 
-      <header className="dashboard-header glass-card">
-        <div className="user-profile">
-          <div className="avatar"><Shield size={30} /></div>
+      <header className="dashboard-header glass-card" role="banner">
+        <div className="user-profile" aria-label="User profile">
+          <div className="avatar" aria-hidden="true"><Shield size={30} /></div>
           <div className="user-info"><h2>{userData.name || 'Citizen'}</h2><div className="meta"><span>ID: {userData.id}</span><span>{userData.location}</span></div></div>
         </div>
-        <button className="logout-btn" onClick={() => { setIsLoggedIn(false); setUserData({name:'', id:'', location:''}); setAllRecords([]); setLegalCases([]); setActiveCaseId(null); }}><LogOut size={18} /> Logout</button>
+        <button className="logout-btn" aria-label="Logout from JanSetu" onClick={() => { setIsLoggedIn(false); setUserData({name:'', id:'', location:''}); setAllRecords([]); setLegalCases([]); setActiveCaseId(null); }}><LogOut size={18} /> Logout</button>
       </header>
 
-      <nav className="tab-bar">
-        <button className={activeTab === 'medical' ? 'active' : ''} onClick={() => setActiveTab('medical')}>Medical Vault</button>
-        <button className={activeTab === 'legal' ? 'active' : ''} onClick={() => setActiveTab('legal')}>Legal & Schemes</button>
+      <nav className="tab-bar" role="tablist" aria-label="Main sections">
+        <button role="tab" aria-selected={activeTab === 'medical'} className={activeTab === 'medical' ? 'active' : ''} onClick={() => setActiveTab('medical')}>Medical Vault</button>
+        <button role="tab" aria-selected={activeTab === 'legal'} className={activeTab === 'legal' ? 'active' : ''} onClick={() => setActiveTab('legal')}>Legal & Schemes</button>
       </nav>
 
-      <main className="content-area">
+      <main id="main-content" className="content-area" role="main">
         {activeTab === 'medical' ? (
           <div className="medical-timeline">
             {isProcessingRecord && (
@@ -405,8 +405,8 @@ Be empathetic and use simple, non-technical language.`;
               <p className="subtitle" style={{marginBottom:'1rem'}}>Securely add health data using Gemini Vision</p>
               <div className="action-grid">
                 <input type="file" ref={reportInputRef} style={{display:'none'}} onChange={handleUploadReport} accept="image/*" />
-                <button className="zone-btn" onClick={() => reportInputRef.current?.click()}><Upload size={18}/> Upload Report</button>
-                <button className="zone-btn" onClick={() => setIsAddingPrescription(true)}><Plus size={18}/> New Prescription</button>
+                <button className="zone-btn" aria-label="Upload medical report image" onClick={() => reportInputRef.current?.click()}><Upload size={18}/> Upload Report</button>
+                <button className="zone-btn" aria-label="Add new digital prescription" onClick={() => setIsAddingPrescription(true)}><Plus size={18}/> New Prescription</button>
               </div>
             </div>
           </div>
@@ -460,7 +460,7 @@ Be empathetic and use simple, non-technical language.`;
                     <button className="zone-btn" onClick={() => legalDocRef.current?.click()}><Upload size={16}/> Upload Doc</button>
                   </div>
 
-                  <div className="chat-messages">
+                  <div className="chat-messages" role="log" aria-live="polite" aria-label="Case conversation">
                     {activeCase.messages.length === 0 && (
                       <div className="chat-starter">
                         <MessageSquare size={32} opacity={0.3}/>

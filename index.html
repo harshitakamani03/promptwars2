@@ -4,10 +4,22 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="JanSetu - Gemini-powered Universal Life-Bridge connecting citizens to medical records and legal aid." />
+    <meta name="theme-color" content="#0d0d1a" />
     <title>JanSetu - Universal Life-Bridge</title>
+
+    <!-- Google Analytics (Google Services) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-JANSETU2025"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-JANSETU2025');
+    </script>
   </head>
   <body>
-    <div id="root"></div>
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+    <div id="root" role="application" aria-label="JanSetu Application"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

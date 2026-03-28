@@ -9,10 +9,12 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 interface MedicalRecord {
   id: string; date: string; type: string; title: string;
   aiSummary: string; medicines?: string[]; imageUrl?: string;
+  isCritical?: boolean; recommendedAction?: string;
 }
 
 interface LegalMessage {
   role: 'user' | 'ai'; content: string; imageUrl?: string;
+  isCritical?: boolean; recommendedAction?: string;
 }
 
 interface LegalCase {
@@ -138,7 +140,7 @@ const App: React.FC = () => {
     try {
       const base64 = await fileToBase64(file);
       const response = await getGeminiResponse(
-        'Summarize this medical report briefly and suggest a title for a timeline. Return ONLY valid JSON: { "title": "string", "summary": "string" }. Do not wrap in markdown.',
+        'Summarize this medical report briefly and suggest a title. CRITICAL: If you detect any emergency or highly abnormal value, set isCritical: true and provide a short recommendedAction string. Return ONLY valid JSON: { "title": "string", "summary": "string", "isCritical": boolean, "recommendedAction": "string" }. Do not wrap in markdown.',
         base64, file.type
       );
       const jsonMatch = response.match(/\{[\s\S]*\}/);
@@ -146,7 +148,8 @@ const App: React.FC = () => {
       const data = JSON.parse(jsonMatch[0]);
       const newRecord: MedicalRecord = {
         id: Date.now().toString(), date: new Date().toISOString().split('T')[0],
-        type: 'report', title: data.title, aiSummary: data.summary, imageUrl: tempUrl
+        type: 'report', title: data.title, aiSummary: data.summary, imageUrl: tempUrl,
+        isCritical: data.isCritical, recommendedAction: data.recommendedAction
       };
       saveMedRecord(newRecord, userData.id, allRecords);
     } catch (err: any) {
@@ -244,16 +247,21 @@ Keep the response concise, empathetic, and actionable. Use simple language.`;
 
     try {
       const base64 = await fileToBase64(file);
-      const prompt = `You are a legal aid assistant in India. Analyze this legal document uploaded by a citizen.
-Case context: "${activeCase?.title}". User location: ${userData.location || 'India'}.
-Provide:
-1. What this document is and what it means
-2. Key clauses or issues to be aware of
-3. Recommended next steps
-4. Any relevant government schemes or legal aid programs in India
-Be empathetic and use simple, non-technical language.`;
-      const aiText = await getGeminiResponse(prompt, base64, file.type);
-      const aiMsg: LegalMessage = { role: 'ai', content: aiText };
+      const prompt = `You are a legal aid assistant in India. Analyze this legal document.
+CRITICAL: If this document implies an urgent deadline (e.g. within 48 hours), a threat of arrest, or immediate eviction, set isCritical: true and provide a recommendedAction.
+User location: ${userData.location || 'India'}.
+Provide JSON: { "summary": "short analysis", "isCritical": boolean, "recommendedAction": "URGENT NEXT STEP", "nextSteps": ["action1", "action2"] }`;
+      
+      const response = await getGeminiResponse(prompt, base64, file.type);
+      const jsonMatch = response.match(/\{[\s\S]*\}/);
+      const data = jsonMatch ? JSON.parse(jsonMatch[0]) : { summary: response };
+
+      const aiMsg: LegalMessage = { 
+        role: 'ai', 
+        content: data.summary || response, 
+        isCritical: data.isCritical, 
+        recommendedAction: data.recommendedAction 
+      };
       addMessageToCase(activeCaseId, aiMsg, afterUser);
     } catch (err: any) {
       const errMsg: LegalMessage = { role: 'ai', content: `Error analyzing document: ${err.message}` };
@@ -385,16 +393,24 @@ Be empathetic and use simple, non-technical language.`;
             {allRecords.map(r => (
               <div key={r.id} className="timeline-group">
                 <div className="date-marker"><Calendar size={16} /> {r.date}</div>
-                <div className="record-card clickable" onClick={() => r.imageUrl && setSelectedImage(r.imageUrl)}>
+                <div className={`record-card clickable ${r.isCritical ? 'critical-border' : ''}`} onClick={() => r.imageUrl && setSelectedImage(r.imageUrl)}>
                   <div className="record-header"><h4>{r.title}</h4></div>
                   {r.imageUrl && (
                     <div className="attachment-thumbnail">
                       <img src={r.imageUrl} alt="Document Attachment" />
                     </div>
                   )}
-                  <div className="gemini-insight glowing">
-                    <div className="ai-label"><AlertCircle size={14}/> Gemini Summary</div>
+                  <div className={`gemini-insight ${r.isCritical ? '' : 'glowing'}`}>
+                    <div className={`ai-label ${r.isCritical ? 'critical-label' : ''}`}>
+                      <AlertCircle size={14}/> {r.isCritical ? 'HIGH PRIORITY INSIGHT' : 'Gemini Summary'}
+                    </div>
                     <p>{r.aiSummary}</p>
+                    {r.isCritical && r.recommendedAction && (
+                      <div className="action-required" role="alert" aria-live="assertive">
+                        <strong>⚠️ RECOMMENDED ACTION:</strong>
+                        {r.recommendedAction}
+                      </div>
+                    )}
                     {r.medicines && <div className="pill-container">{r.medicines.map(m => <span key={m} className="pill-tag">{m}</span>)}</div>}
                   </div>
                 </div>
@@ -468,10 +484,16 @@ Be empathetic and use simple, non-technical language.`;
                       </div>
                     )}
                     {activeCase.messages.map((msg, i) => (
-                      <div key={i} className={`chat-bubble ${msg.role === 'user' ? 'bubble-user' : 'bubble-ai'}`}>
+                      <div key={i} className={`chat-bubble ${msg.role === 'user' ? 'bubble-user' : 'bubble-ai'} ${msg.isCritical ? 'critical-border' : ''}`}>
                         {msg.imageUrl && <img src={msg.imageUrl} alt="doc" className="chat-doc-thumb" onClick={() => setSelectedImage(msg.imageUrl!)} />}
                         <div className="bubble-text">{msg.content}</div>
-                        {msg.role === 'ai' && <div className="ai-badge"><AlertCircle size={12}/> Gemini Legal AI</div>}
+                        {msg.isCritical && msg.recommendedAction && (
+                          <div className="action-required" role="alert" aria-live="assertive">
+                            <strong>⚠️ URGENT ACTION:</strong>
+                            {msg.recommendedAction}
+                          </div>
+                        )}
+                        {msg.role === 'ai' && <div className={`ai-label ${msg.isCritical ? 'critical-label' : ''}`} style={{marginTop:'8px'}}><Shield size={12}/> Gemini Legal AI</div>}
                       </div>
                     ))}
                     {isLegalThinking && (
